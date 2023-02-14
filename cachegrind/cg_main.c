@@ -45,6 +45,7 @@
 #include "cg_arch.h"
 #include "cg_sim.c"
 #include "cg_branchpred.c"
+#include "cg_addr_tuple.h"
 
 /*------------------------------------------------------------*/
 /*--- Constants                                            ---*/
@@ -1569,6 +1570,7 @@ static void cg_fini(Int exitcode)
          LL_total, LL_total_r, LL_total_w;
    Int l1, l2, l3;
 
+   cleanup_address_tuples();
    fprint_CC_table_and_calc_totals();
 
    if (VG_(clo_verbosity) == 0) 
@@ -1799,6 +1801,7 @@ static void cg_pre_clo_init(void)
    VG_(needs_command_line_options)(cg_process_cmd_line_option,
                                    cg_print_usage,
                                    cg_print_debug_usage);
+    parse_address_tuples_from_environ();
 }
 
 static void cg_post_clo_init(void)
@@ -1850,6 +1853,8 @@ static void cg_post_clo_init(void)
 }
 
 VG_DETERMINE_INTERFACE_VERSION(cg_pre_clo_init)
+
+tuple_node_t* tuples = NULL;
 
 /*--------------------------------------------------------------------*/
 /*--- end                                                          ---*/
