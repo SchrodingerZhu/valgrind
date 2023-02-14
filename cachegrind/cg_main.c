@@ -61,6 +61,7 @@
 static Bool  clo_cache_sim  = True;  /* do cache simulation? */
 static Bool  clo_branch_sim = False; /* do branch simulation? */
 static const HChar* clo_cachegrind_out_file = "cachegrind.out.%p";
+static const HChar* target_func = ".omp_outlined.";
 
 /*------------------------------------------------------------*/
 /*--- Cachesim configuration                               ---*/
@@ -391,9 +392,9 @@ void log_1IrNoX_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
 			 &n->parent->Ir.m1, &n->parent->Ir.mL);
    n->parent->Ir.a++;
-
+   int isInROI = (VG_(strstr)(get_perm_string(n->parent->loc.fn), target_func) != NULL);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL);
+                     &n->parent->Dr.m1, &n->parent->Dr.mL, isInROI);
    n->parent->Dr.a++;
 }
 
@@ -406,9 +407,9 @@ void log_1IrNoX_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
 			 &n->parent->Ir.m1, &n->parent->Ir.mL);
    n->parent->Ir.a++;
-
+   int isInROI = (VG_(strstr)(get_perm_string(n->parent->loc.fn), target_func) != NULL);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL);
+                     &n->parent->Dw.m1, &n->parent->Dw.mL, isInROI);
    n->parent->Dw.a++;
 }
 
@@ -420,8 +421,9 @@ void log_0Ir_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
 {
    //VG_(printf)("0Ir_1Dr:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
    //            n, data_addr, data_size);
+   int isInROI = (VG_(strstr)(get_perm_string(n->parent->loc.fn), target_func) != NULL);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL);
+                     &n->parent->Dr.m1, &n->parent->Dr.mL, isInROI);
    n->parent->Dr.a++;
 }
 
@@ -431,8 +433,9 @@ void log_0Ir_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
 {
    //VG_(printf)("0Ir_1Dw:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
    //            n, data_addr, data_size);
+   int isInROI = (VG_(strstr)(get_perm_string(n->parent->loc.fn), target_func) != NULL);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL);
+                     &n->parent->Dw.m1, &n->parent->Dw.mL, isInROI);
    n->parent->Dw.a++;
 }
 
