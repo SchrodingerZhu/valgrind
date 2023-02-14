@@ -201,15 +201,89 @@ void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL)
    }
 }
 
+struct TupleNode {
+    struct TupleNode * next;
+    char * name;
+    Addr base;
+    ULong size;
+};
+
+typedef  struct TupleNode tuple_node_t;
+__attribute__((weak, visibility("default"))) extern char **environ;
+
+static tuple_node_t* tuples;
+
+__attribute__((always_inline))
+static __inline__ void parse_address_tuples(const char * input) {
+    // input: "NAME,N,M;"
+    int state = 0;
+    int cursor = 0;
+
+    tuple_node_t current;
+    current.size = 0;
+    current.base = 0;
+    current.name = NULL;
+    current.next = NULL;
+
+    while (1) {
+        if(input[cursor] == 0 || input[cursor] == ';') {
+            state = 0;
+            input = input + cursor + 1;
+            cursor = 0;
+            tuple_node_t * mem = VG_(malloc)("cg_sim.tuple_node", sizeof(tuple_node_t));
+            *mem = current;
+            current.size = 0;
+            current.base = 0;
+            current.name = NULL;
+            current.next = NULL;
+            mem->next = tuples;
+            tuples = mem;
+            VG_(printf)("address tuple: %s,%lu,%llu\n", mem->name, mem->base, mem->size);
+            if(input[-1] == 0) {
+                break;
+            }
+        }
+        if(input[cursor] == ',') {
+            if (state == 0) {
+                current.name = VG_(malloc)("cg_sim.tuple_node.name", cursor + 1);
+                VG_(memcpy)(current.name, input, cursor);
+                current.name[cursor] = 0;
+            }
+            state += 1;
+        } else if (state == 1) {
+            current.base = current.base * 10 + (input[cursor] - '0');
+        } else if (state == 2) {
+            current.size = current.size * 10 + (input[cursor] - '0');
+        }
+        cursor++;
+    }
+}
+
+
+__attribute__((always_inline))
+static __inline__ void parse_address_tuples_from_environ(void) {
+    const char * name = "ADDRESS_TUPLES";
+    const char * input = VG_(getenv)(name);
+    if (input) parse_address_tuples(input);
+}
+
 __attribute__((always_inline))
 static __inline__
 void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong *mL)
 {
-   if (cachesim_ref_is_miss(&D1, a, size)) {
-      (*m1)++;
-      if (cachesim_ref_is_miss(&LL, a, size))
-         (*mL)++;
+   if (NULL == tuples) {
+       parse_address_tuples_from_environ();
    }
+
+   for (tuple_node_t * node = tuples; node != NULL; node = node->next) {
+       if (a >= node->base && a < node->base + size) {
+           (*m1)++;
+           if (cachesim_ref_is_miss(&LL, a, size))
+               (*mL)++;
+           break;
+       }
+   }
+
 }
 
 /* Check for special case IrNoX. Called at instrumentation time.
