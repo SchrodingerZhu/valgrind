@@ -205,17 +205,24 @@ void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL)
 
 __attribute__((always_inline))
 static __inline__
-void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong *mL)
+void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong *mL, int inROI)
 {
    for (tuple_node_t * node = tuples; node != NULL; node = node->next) {
-       if (a >= node->base && a < node->base + size) {
-           (*m1)++;
-           if (cachesim_ref_is_miss(&LL, a, size))
-               (*mL)++;
-           break;
-       }
+      if (inROI) {
+         if (a >= node->base && a < node->base + node->size) {
+            UWord block1 =  a         >> (&LL)->line_size_bits;
+            UWord block2 = (a+size-1) >> (&LL)->line_size_bits;
+            UInt  set1   = block1 & (&LL)->sets_min_1;
+            VG_(printf)("s%u,%lx,%lx\n",set1,a,block1);
+            (*m1)++;
+            if (cachesim_ref_is_miss(&LL, a, size))
+                  (*mL)++;
+            break;
+         }
+      } else {
+         break;
+      }
    }
-
 }
 
 /* Check for special case IrNoX. Called at instrumentation time.

@@ -2292,3 +2292,8 @@
 
 # /VEX/switchback/
 /VEX/switchback/switchback
+
+# Tracing output
+*.addr
+*.out
+*-t*-mrc.txt
